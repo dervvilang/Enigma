@@ -188,7 +188,6 @@ if args.config and args.initial and args.panel and args.text:
     panel_set = args.panel.strip()
     text = args.text.strip()
 else:
-    print(Fore.YELLOW + "Аргументы не заданы, запускается интерактивный режим.")
     config_file = input("Введите путь к файлу конфигурации (например, enigma_config.txt): ").strip()
     initial_positions = input("Введите начальные позиции роторов (например, АБВ): ").strip()
     panel_set = input("Введите соединительную панель (например, БВГД): ").strip()
