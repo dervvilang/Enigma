@@ -52,7 +52,6 @@ def test_invalid_panel():
     reflector_set = 'А-Г,Б-В,В-Б,Г-А'
 
     with pytest.raises(ValueError):
-        # некорректная панель изза отсутствия одного символа
         Enigma(rotor_set, reflector_set, 'Б', 'ААА')
 
 
@@ -79,16 +78,14 @@ def test_reflector():
 # тест на некорректную дешифровку при замене ротора
 def test_incorrect_rotor_replacement():
     rotor_set1 = ['АБВГ-ГАБВ', 'АБВГ-БАГВ', 'АБВГ-ВГАБ']
-    rotor_set2 = ['АБВГ-ВБАГ', 'АБВГ-БАГВ', 'АБВГ-ГАБВ']  # Один ротор заменён
+    rotor_set2 = ['АБВГ-ВБАГ', 'АБВГ-БАГВ', 'АБВГ-ГАБВ']
     reflector_set = 'А-Г,Б-В,В-Б,Г-А'
     panel_set = 'БВ'
 
-    # оригинальная машина для шифрования
     enigma1 = Enigma(rotor_set1, reflector_set, panel_set, 'ААА')
     input_text = 'АБВ'
     encrypted_text = enigma1.encryption_text(input_text)
 
-    # машина с другим набором роторов для дешифровки
     enigma2 = Enigma(rotor_set2, reflector_set, panel_set, 'ААА')
     decrypted_text = enigma2.encryption_text(encrypted_text)
 
