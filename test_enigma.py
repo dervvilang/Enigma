@@ -1,5 +1,5 @@
 import pytest
-from enigma import Enigma, Rotor, Reflector, Panel
+from enigma import Enigma, Rotor, Reflector, Panel, read_configuration
 
 
 # фикстура для создания машины Энигма с заданной конфигурацией
@@ -67,7 +67,6 @@ def test_various_messages(enigma_machine, input_text):
     encrypted = enigma_machine.encryption_text(input_text)
     assert isinstance(encrypted, str) and len(encrypted) == len(input_text)
 
-
 # тест с рефлектором
 def test_reflector():
     reflector = Reflector('А-Г,Б-В,В-Б,Г-А')
@@ -90,7 +89,6 @@ def test_incorrect_rotor_replacement():
     decrypted_text = enigma2.encryption_text(encrypted_text)
 
     assert decrypted_text != input_text
-
 
 # тест на правильную конфигурацию рефлектора
 def test_valid_reflector_configuration():
@@ -127,3 +125,80 @@ def test_invalid_rotor_length_mismatch():
     invalid_rotor_set = 'АБВГ-ГАБ'
     with pytest.raises(ValueError, match="Алфавит и отображение ротора должны быть одинаковой длины."):
         Rotor(invalid_rotor_set)
+
+
+# тест на read_configuration с несуществующим файлом
+def test_read_configuration_file_not_found():
+    with pytest.raises(FileNotFoundError, match="Ошибка: файл 'nonexistent.txt' не найден."):
+        read_configuration('nonexistent.txt')
+
+
+# тест read_configuration с некорректным форматом
+def test_read_configuration_invalid_format(tmp_path):
+    config_file = tmp_path / "bad_config.txt"
+    # Конфигурация, не содержащая разделителей "="
+    config_file.write_text("rotor_1 : АБВГ-ГАБВ", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="Ошибка при загрузке конфигурации:.*"):
+        read_configuration(config_file)
+
+
+# Тест для обработки некорректного символа в панели
+def test_invalid_panel_symbols():
+    with pytest.raises(ValueError, match="Символы 'X' или 'Y' отсутствуют в алфавите.*"):
+        Panel("XY", "АБВГ")
+
+
+def test_panel_odd_length():
+    with pytest.raises(ValueError, match="Соединительная панель должна содержать чётное количество символов."):
+        Panel("ABC", "АБВГ")
+
+
+def test_rotor_invalid_position():
+    rotor = Rotor("АБВГ-ГАБВ")
+    with pytest.raises(ValueError, match="Символ 'X' отсутствует в алфавите ротора."):
+        rotor.set_position("X")
+
+
+def test_reflector_missing_symbol():
+    reflector = Reflector("А-Г,Б-В,Г-А,В-Б")
+    with pytest.raises(KeyError, match="Ошибка рефлектора: символ 'Д' не имеет соответствия."):
+        reflector.reflect("Д")
+
+
+def test_rotor_turn():
+    rotor = Rotor("АБВГ-ГАБВ")
+    original_mapping = rotor.mapping
+    rotor.turn()
+    assert rotor.mapping == original_mapping[1:] + original_mapping[:1]
+    assert rotor.position == 1
+
+
+def test_reflector_invalid_format():
+    invalid_reflector_set = "А-Г;Б-В;Г-А;В-Б"  # Используем некорректный разделитель
+    with pytest.raises(ValueError, match="Ошибка в настройке рефлектора. Неверный формат."):
+        Reflector(invalid_reflector_set)
+
+
+def test_enigma_initial_set_length_mismatch():
+    rotor_set = ['АБВГ-ГАБВ', 'АБВГ-БАГВ', 'АБВГ-ВГАБ']
+    reflector_set = 'А-Г,Б-В,В-Б,Г-А'
+    panel_set = 'БВ'
+    # Передаем только две позиции вместо трех
+    initial_positions = 'АА'
+    with pytest.raises(ValueError, match="Количество начальных позиций не соответствует количеству роторов."):
+        Enigma(rotor_set, reflector_set, panel_set, initial_positions)
+
+
+def test_read_configuration_reflector_line(tmp_path):
+    config_file = tmp_path / "test_config.txt"
+    config_content = """
+    rotor_1 = АБВГ-ГАБВ
+    rotor_2 = АБВГ-БАГВ
+    reflector = А-Г,Б-В,Г-А,В-Б
+    """
+    config_file.write_text(config_content, encoding="utf-8")
+
+    rotor_set, reflector_set = read_configuration(config_file)
+    assert rotor_set == ['АБВГ-ГАБВ', 'АБВГ-БАГВ'], "Неверно считаны настройки роторов"
+    assert reflector_set == 'А-Г,Б-В,Г-А,В-Б', "Неверно считаны настройки рефлектора"
+
